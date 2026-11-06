@@ -193,7 +193,7 @@ export default function PublicProposalClient({ raw, error, ok, proposal, brand, 
           </form>
         )}
 
-        <p className="text-center text-slate-400 text-xs mt-6">Powered by Proposal AI · secured link, expires automatically</p>
+        <p className="text-center text-slate-400 text-xs mt-6">Powered by Proposphere · secured link, expires automatically</p>
       </div>
     </div>
   );

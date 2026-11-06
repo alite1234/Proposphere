@@ -1,4 +1,4 @@
-# Proposal AI
+# Proposphere
 
 AI-powered proposal generation and business management platform for freelancers, consultants, agencies and service businesses. Built from the product specification in [`proposal_ai_complete_product_specification-1.md`](../proposal_ai_complete_product_specification-1.md).
 

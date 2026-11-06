@@ -37,6 +37,7 @@ export async function registerAction(formData: FormData) {
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
+  const next = String(formData.get("next") || "");
   const h = await headers();
   const ip = h.get("x-forwarded-for") ?? "local";
   if (!rateLimit(`login:${ip}:${email}`, 8, 60_000)) redirect("/login?error=Too+many+attempts.+Try+again+shortly.");
@@ -44,13 +45,15 @@ export async function loginAction(formData: FormData) {
   const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
   const user = rows[0];
   if (!user || !verifyPassword(password, user.passwordHash)) {
-    redirect("/login?error=Invalid+email+or+password.");
+    redirect(`/login?error=Invalid+email+or+password.${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   }
   await createSession(user.id);
-  redirect("/dashboard");
+  // Only allow internal paths to prevent open redirects
+  const target = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  redirect(target);
 }
 
 export async function logoutAction() {
   await destroySession();
-  redirect("/login");
+  redirect("/");
 }

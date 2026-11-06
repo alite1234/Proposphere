@@ -71,7 +71,7 @@ export default async function ReceiptDetailPage({ params }: { params: Promise<{ 
         {brand?.signatureUrl && <img src={brand.signatureUrl} alt="signature" className="h-10" />}
         {brand?.stampUrl && <img src={brand.stampUrl} alt="stamp" className="h-16 opacity-70" />}
         {brand?.footerText && <div className="text-center text-slate-400 text-xs mt-6">{brand.footerText}</div>}
-        <div className="text-center text-slate-300 text-[10px] mt-2">This receipt was generated from a recorded payment on Proposal AI.</div>
+        <div className="text-center text-slate-300 text-[10px] mt-2">This receipt was generated from a recorded payment on Proposphere.</div>
       </div>
     </div>
   );

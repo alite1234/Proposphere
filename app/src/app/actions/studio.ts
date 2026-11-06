@@ -51,7 +51,7 @@ const contentSchema = z.object({
   assumptions: z.array(z.string()).default([]),
 });
 
-const SYSTEM = `You are a thoughtful business development consultant inside Proposal AI, a platform for service providers.
+const SYSTEM = `You are a thoughtful business development consultant inside Proposphere, a platform for service providers.
 Rules you must never break:
 - Use ONLY the information supplied by the user. Never invent clients, testimonials, awards, certifications, results or performance claims.
 - Never invent prices. Reference services only by the names/prices the user configured.
