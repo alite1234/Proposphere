@@ -1,5 +1,5 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/db";
 import { users, sessions, businesses, businessMembers } from "@/db/schema";
 import { and, eq, gt } from "drizzle-orm";
@@ -27,12 +27,19 @@ export function verifyPassword(password: string, stored: string): boolean {
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
-  await db.insert(sessions).values({ userId, token, expiresAt });
+  // Store only the hash of the session token (getSessionUser looks the hash up),
+  // mirroring how acceptance tokens are handled.
+  await db.insert(sessions).values({ userId, token: sha256(token), expiresAt });
   const jar = await cookies();
+  // Mark the cookie Secure only when the request actually arrives over HTTPS
+  // (Vercel sets x-forwarded-proto). On http://localhost a Secure cookie is
+  // silently dropped by browsers, which broke the login -> dashboard flow.
+  const h = await headers();
+  const isHttps = (h.get("x-forwarded-proto") ?? "").split(",")[0].trim() === "https";
   jar.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     expires: expiresAt,
     path: "/",
   });

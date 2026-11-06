@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getTenant } from "@/lib/auth";
 import { registerAction } from "@/app/actions/auth";
 import PasswordInput from "@/components/PasswordInput";
 import SubmitButton from "@/components/SubmitButton";
@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
-  const user = await getSessionUser();
-  if (user) redirect("/dashboard");
+  const tenant = await getTenant();
+  if (tenant) redirect("/dashboard");
 
   return (
     <div className="glass rounded-3xl p-8 shadow-2xl shadow-black/40 rise">

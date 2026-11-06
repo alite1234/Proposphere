@@ -116,6 +116,45 @@ body {
   border-color: rgba(255, 255, 255, 0.07);
 }
 
+/* ---------- Legacy surface unification ----------
+   Older pages use slate-900/800 utilities directly. Map them onto the
+   premium glass tokens so the whole app shares one consistent dark look.
+   Unlayered rules win over Tailwind's @layer utilities. */
+.bg-slate-900 {
+  background-color: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+}
+.bg-slate-800 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.bg-slate-700 {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+.bg-slate-950\/50 {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+.bg-slate-950\/95 {
+  background-color: rgba(5, 7, 13, 0.97);
+}
+.border-slate-800 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.border-slate-700 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.hover\:bg-slate-700:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+.hover\:bg-slate-800:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.hover\:border-slate-600:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
 /* ---------- Motion ---------- */
 
 @keyframes rise {

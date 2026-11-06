@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getTenant } from "@/lib/auth";
 import { loginAction } from "@/app/actions/auth";
 import PasswordInput from "@/components/PasswordInput";
 import SubmitButton from "@/components/SubmitButton";
@@ -13,8 +13,8 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const { error, next } = await searchParams;
-  const user = await getSessionUser();
-  if (user) redirect(next || "/dashboard");
+  const tenant = await getTenant();
+  if (tenant) redirect(next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
 
   return (
     <div className="glass rounded-3xl p-8 shadow-2xl shadow-black/40 rise">
