@@ -4,17 +4,47 @@ import { db } from "@/db";
 import { discoverySessions, opportunities } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { analyzeAction, answerQuestionsAction, decideRecommendationAction, generateProposalAction } from "@/app/actions/studio";
+import { analyzeAction, generateProposalAction } from "@/app/actions/studio";
+import { StudioQuestions, RecommendationCards } from "@/components/StudioFlow";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
-const input = "w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+const input = "field";
 
-const LEVEL_STYLES: Record<string, string> = {
-  essential: "bg-red-500/15 text-red-300 border-red-500/30",
-  recommended: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  optional: "bg-slate-700/40 text-slate-300 border-slate-600/40",
-};
+function Stepper({ current, done }: { current: number; done: number[] }) {
+  const steps = ["Analysis", "Discovery", "Recommendations", "Generate"];
+  return (
+    <div className="glass rounded-2xl px-5 py-4">
+      <ol className="flex items-center">
+        {steps.map((label, i) => {
+          const n = i + 1;
+          const isDone = done.includes(n);
+          const isCurrent = n === current;
+          return (
+            <li key={label} className="flex items-center flex-1 last:flex-none">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-all ${
+                    isDone
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : isCurrent
+                        ? "bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-lg shadow-blue-500/30 scale-110"
+                        : "bg-white/[0.04] text-slate-500 border border-white/10"
+                  }`}
+                >
+                  {isDone ? "✓" : n}
+                </span>
+                <span className={`text-xs hidden sm:block ${isCurrent ? "text-white font-medium" : isDone ? "text-slate-400" : "text-slate-600"}`}>{label}</span>
+              </div>
+              {n < steps.length && <div className={`flex-1 h-px mx-3 ${isDone ? "bg-emerald-500/40" : "bg-white/10"}`} />}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
 export default async function StudioSessionPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await requireTenant();
@@ -24,22 +54,32 @@ export default async function StudioSessionPage({ params }: { params: Promise<{ 
   const [opp] = await db.select().from(opportunities).where(eq(opportunities.id, session.opportunityId)).limit(1);
   const analysis = (session.analysis ?? {}) as { summary?: string; likelyNeeds?: string[]; unclearOrMissing?: string[]; risksAndAssumptions?: string[]; likelyConcerns?: string[]; infoNeededToPrice?: string[] };
 
+  const analysisDone = session.status !== "draft";
+  const questionsDone = Object.keys(session.answers).length > 0;
+  const recsDone = session.recommendations.some((r) => r.decision !== "pending");
+  const readyToGenerate = session.status !== "draft";
+
+  const current = !analysisDone ? 1 : !questionsDone ? 2 : !recsDone ? 3 : 4;
+  const doneSteps = [analysisDone && 1, questionsDone && 2, recsDone && 3].filter(Boolean) as number[];
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <Link href="/studio" className="text-slate-500 text-xs hover:text-slate-300">← Back</Link>
-        <h1 className="text-2xl font-bold text-white mt-1">{opp?.title}</h1>
-        <p className="text-slate-400 text-sm">{opp?.clientName} · session status: {session.status}</p>
+        <Link href="/studio" className="text-slate-500 text-xs hover:text-slate-300">← Back to Studio</Link>
+        <h1 className="text-2xl font-bold text-white tracking-tight mt-1">{opp?.title}</h1>
+        <p className="text-slate-400 text-sm">{opp?.clientName} · {session.status.replace(/_/g, " ")}</p>
       </div>
 
+      <Stepper current={current} done={doneSteps} />
+
       {/* Step 1: analysis */}
-      <section className="rounded-xl bg-slate-900 border border-slate-800 p-5">
+      <section className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-white font-semibold text-sm">1. AI discovery & analysis</h2>
           {session.status === "draft" && (
             <form action={analyzeAction}>
               <input type="hidden" name="sessionId" value={id} />
-              <button className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-4 py-2">Run AI analysis</button>
+              <SubmitButton label="Run AI analysis" pending="Analysing opportunity…" className="btn-primary rounded-xl text-white text-xs font-medium px-4 py-2" />
             </form>
           )}
         </div>
@@ -48,7 +88,7 @@ export default async function StudioSessionPage({ params }: { params: Promise<{ 
         )}
         {session.analysis && (
           <div className="mt-3 space-y-3 text-sm">
-            {analysis.summary && <p className="text-slate-300">{analysis.summary}</p>}
+            {analysis.summary && <p className="text-slate-300 leading-relaxed">{analysis.summary}</p>}
             {analysis.likelyNeeds && analysis.likelyNeeds.length > 0 && (
               <Block title="Likely needs (based on supplied evidence)" items={analysis.likelyNeeds} color="text-emerald-300" />
             )}
@@ -70,89 +110,47 @@ export default async function StudioSessionPage({ params }: { params: Promise<{ 
 
       {/* Step 2: adaptive questions */}
       {session.status !== "draft" && (
-        <section className="rounded-xl bg-slate-900 border border-slate-800 p-5">
+        <section className="glass rounded-2xl p-5">
           <h2 className="text-white font-semibold text-sm">2. Adaptive discovery questions</h2>
-          <p className="text-slate-500 text-xs mt-0.5 mb-3">Generated for this specific opportunity — not a generic form.</p>
+          <p className="text-slate-500 text-xs mt-0.5 mb-4">Generated for this specific opportunity — not a generic form.</p>
           {session.questions.length > 0 && (
-            <form action={answerQuestionsAction} className="space-y-3">
-              <input type="hidden" name="sessionId" value={id} />
-              {session.questions.map((q, i) => (
-                <div key={i}>
-                  <label className="block text-slate-200 text-sm">{q.question}</label>
-                  <div className="text-slate-500 text-xs mb-1">{q.why}</div>
-                  <textarea name={`q_${i}`} rows={2} defaultValue={session.answers[q.question] ?? ""} className={input} />
-                </div>
-              ))}
-              <button className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-4 py-2">Save answers & get recommendations</button>
-            </form>
+            <StudioQuestions sessionId={id} questions={session.questions} answers={session.answers} />
           )}
         </section>
       )}
 
       {/* Step 3: recommendations */}
       {session.recommendations.length > 0 && (
-        <section className="rounded-xl bg-slate-900 border border-slate-800 p-5">
+        <section className="glass rounded-2xl p-5">
           <h2 className="text-white font-semibold text-sm">3. Recommendation cards</h2>
-          <p className="text-slate-500 text-xs mt-0.5 mb-3">You approve every addition that changes scope, price or delivery time.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {session.recommendations.map((r) => (
-              <div key={r.id} className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="text-white text-sm font-medium">{r.name}</div>
-                  <span className={`text-[10px] rounded px-1.5 py-0.5 border ${LEVEL_STYLES[r.level]}`}>{r.level}</span>
-                </div>
-                <p className="text-slate-400 text-xs mt-1.5">{r.what}</p>
-                <p className="text-slate-500 text-xs mt-1">Why: {r.why}</p>
-                <p className="text-slate-500 text-xs">Addresses: {r.problem}</p>
-                {r.estimatedCost && <p className="text-emerald-400 text-xs mt-1">Est. cost: {r.estimatedCost}</p>}
-                {r.timelineImpact && <p className="text-slate-400 text-xs">Timeline: {r.timelineImpact}</p>}
-                <form action={decideRecommendationAction} className="flex gap-1.5 mt-3">
-                  <input type="hidden" name="sessionId" value={id} />
-                  <input type="hidden" name="recId" value={r.id} />
-                  {(["include", "exclude", "ask_client"] as const).map((dec) => (
-                    <button
-                      key={dec}
-                      name="decision"
-                      value={dec}
-                      className={`text-[11px] rounded-md px-2.5 py-1.5 border transition-colors ${
-                        r.decision === dec
-                          ? dec === "include" ? "bg-emerald-600 border-emerald-600 text-white" : dec === "exclude" ? "bg-red-600 border-red-600 text-white" : "bg-blue-600 border-blue-600 text-white"
-                          : "border-slate-700 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {dec === "include" ? "Include" : dec === "exclude" ? "Exclude" : "Ask client"}
-                    </button>
-                  ))}
-                </form>
-              </div>
-            ))}
-          </div>
+          <p className="text-slate-500 text-xs mt-0.5 mb-4">You approve every addition that changes scope, price or delivery time.</p>
+          <RecommendationCards sessionId={id} recommendations={session.recommendations} />
         </section>
       )}
 
       {/* Step 4: readiness + generate */}
-      {session.status !== "draft" && (
-        <section className="rounded-xl bg-slate-900 border border-slate-800 p-5">
+      {readyToGenerate && (
+        <section className="glass rounded-2xl p-5">
           <h2 className="text-white font-semibold text-sm">4. Readiness check</h2>
-          <ul className="mt-2 space-y-1.5 text-sm">
+          <ul className="mt-3 space-y-2 text-sm">
             <li className="flex justify-between"><span className="text-slate-400">Answered questions</span><span className="text-white">{Object.keys(session.answers).length} / {session.questions.length}</span></li>
             <li className="flex justify-between"><span className="text-slate-400">Approved recommendations</span><span className="text-white">{session.recommendations.filter((r) => r.decision === "include").length} included · {session.recommendations.filter((r) => r.decision === "ask_client").length} to ask client</span></li>
             <li className="flex justify-between"><span className="text-slate-400">Pricing</span><span className="text-white">Calculated by the app from your catalogue — never by the AI</span></li>
           </ul>
           {Object.keys(session.answers).length < session.questions.length && (
-            <p className="text-amber-400 text-xs mt-2">⚠ Some questions are unanswered. You can proceed, but missing details may affect the proposal — gaps will be marked as assumptions.</p>
+            <p className="text-amber-400 text-xs mt-3">⚠ Some questions are unanswered. You can proceed, but missing details may affect the proposal — gaps will be marked as assumptions.</p>
           )}
-          <form action={generateProposalAction} className="flex items-end gap-3 mt-4">
+          <form action={generateProposalAction} className="flex items-end gap-3 mt-5">
             <input type="hidden" name="sessionId" value={id} />
             <div>
-              <label className="block text-slate-300 text-xs mb-1">Document complexity</label>
+              <label className="block text-slate-400 text-xs mb-1.5">Document complexity</label>
               <select name="complexity" className={input}>
                 <option value="simple">Simple — lean one-pager style</option>
                 <option value="standard" selected>Standard</option>
                 <option value="full">Full — all 30 sections</option>
               </select>
             </div>
-            <button className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5">Generate proposal draft</button>
+            <SubmitButton label="Generate proposal draft" pending="Writing your proposal…" className="btn-primary rounded-xl text-white text-sm font-medium px-5 py-2.5" />
           </form>
         </section>
       )}

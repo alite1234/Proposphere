@@ -31,10 +31,12 @@ function parseItems(formData: FormData): ItemInput[] {
     .filter((x) => x.description && isValidAmount(x.quantity) && isValidAmount(x.unitPrice) && Number(x.quantity) > 0);
 }
 
-export async function createQuotationAction(formData: FormData) {
+import type { ActionState } from "@/lib/action-state";
+
+export async function createQuotationAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const t = await requireTenant();
   const items = parseItems(formData);
-  if (items.length === 0) redirect("/quotations?error=Add+at+least+one+valid+line+item+(quantity+>+0).");
+  if (items.length === 0) return { error: "Add at least one valid line item (quantity > 0)." };
   const [fin] = await db.select().from(taxSettings).where(eq(taxSettings.businessId, t.businessId)).limit(1);
   const currency = String(formData.get("currency") || fin?.currency || "NGN").toUpperCase();
   const discountType = (String(formData.get("discountType") || "none") as "none" | "amount" | "percent");

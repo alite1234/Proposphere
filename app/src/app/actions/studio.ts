@@ -11,6 +11,7 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { ActionState } from "@/lib/action-state";
 
 const analysisSchema = z.object({
   likelyNeeds: z.array(z.string()),
@@ -161,11 +162,11 @@ export async function analyzeAction(formData: FormData) {
   redirect(`/studio/${sessionId}`);
 }
 
-export async function answerQuestionsAction(formData: FormData) {
+export async function answerQuestionsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const t = await requireTenant();
   const sessionId = String(formData.get("sessionId") || "");
   const [session] = await db.select().from(discoverySessions).where(and(eq(discoverySessions.id, sessionId), eq(discoverySessions.businessId, t.businessId))).limit(1);
-  if (!session) redirect("/studio");
+  if (!session) return { error: "Session not found." };
 
   const answers: Record<string, string> = {};
   session.questions.forEach((q, i) => {
@@ -216,19 +217,21 @@ export async function answerQuestionsAction(formData: FormData) {
   }
 
   await db.update(discoverySessions).set({ answers, recommendations, status: "ready" }).where(eq(discoverySessions.id, sessionId));
-  redirect(`/studio/${sessionId}`);
+  revalidatePath(`/studio/${sessionId}`);
+  return { ok: true };
 }
 
-export async function decideRecommendationAction(formData: FormData) {
+export async function decideRecommendationAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const t = await requireTenant();
   const sessionId = String(formData.get("sessionId") || "");
   const recId = String(formData.get("recId") || "");
   const decision = String(formData.get("decision") || "") as Recommendation["decision"];
   const [session] = await db.select().from(discoverySessions).where(and(eq(discoverySessions.id, sessionId), eq(discoverySessions.businessId, t.businessId))).limit(1);
-  if (!session) redirect("/studio");
+  if (!session) return { error: "Session not found." };
   const recs = session.recommendations.map((r) => (r.id === recId ? { ...r, decision } : r));
   await db.update(discoverySessions).set({ recommendations: recs }).where(eq(discoverySessions.id, sessionId));
   revalidatePath(`/studio/${sessionId}`);
+  return { ok: true };
 }
 
 export async function generateProposalAction(formData: FormData) {
@@ -289,25 +292,78 @@ export async function generateProposalAction(formData: FormData) {
       opportunity: opp,
       answers: session.answers,
       analysis: session.analysis,
-      includedServices: includedServices.map((s) => ({ name: s.name, description: s.description, price: s.basePrice, deliverables: s.deliverables, unit: s.unit })),
-      packages: pkgs.map((p) => ({ name: p.name, price: p.price, features: p.features, recommended: p.recommended })),
-      evidence: pf.map((p) => ({ kind: p.kind, title: p.title, description: p.description, result: p.resultMetric })),
+      includedServices: includedServices.map((s) => ({ name: s.name, description: s.description, scope: s.scope, deliverables: s.deliverables, price: s.basePrice, deliverablesUnit: s.unit, durationDays: s.durationDays, exclusions: s.exclusions })),
+      packages: pkgs.map((p) => ({ name: p.name, price: p.price, features: p.features, recommended: p.recommended, timelineDays: p.timelineDays, supportDays: p.supportDays, terms: p.terms })),
+      evidence: pf.map((p) => ({ kind: p.kind, title: p.title, description: p.description, result: p.resultMetric, date: p.date })),
       pricing: content.pricing,
       comparison: content.comparison,
       sections: content.sections.filter((s) => s.enabled).map((s) => ({ kind: s.kind, title: s.title })),
       tone: profile?.toneOfVoice ?? "professional",
     });
+
+    const sectionGuide: Record<string, string> = {
+      cover: "One elegant sentence positioning the engagement.",
+      meta: "State the proposal reference and today's date plainly.",
+      parties: "Present 'Prepared for' (the client and contact) and 'Prepared by' (the business) using supplied details only.",
+      toc: "A brief note that the full table of contents appears in the document contents page.",
+      executive_summary: "The single most important section: who the client is, the core problem, the proposed solution in one paragraph, the expected outcome and the investment. Persuasive, concise, confident.",
+      understanding: "Show genuine understanding of the client's business, market and situation based ONLY on the supplied opportunity information.",
+      challenges: "Articulate the client's current challenges and the cost of leaving them unresolved. Factual, no fearmongering.",
+      objectives: "Numbered, measurable project objectives derived from the client's goals and discovery answers.",
+      solution: "Describe the proposed solution clearly, weaving in the included services by name.",
+      scope: "Concrete in-scope work items as a bullet list, drawn from the included services' scope and deliverables.",
+      features: "Feature/functionality breakdown mapped to what the included services actually deliver.",
+      deliverables: "Explicit list of deliverables the client receives, from the services' deliverables data.",
+      why_needed: "Explain why this service is needed now: the problem, the implications of inaction, and how the proposed work addresses it. Balanced and honest.",
+      benefits: "Realistic expected benefits. Distinguish expected outcomes from guarantees. Never invent metrics.",
+      methodology: "Step-by-step implementation approach: discovery, design, build, review, launch — grounded in the services' delivery style.",
+      timeline: "Phase-by-phase timeline with indicative durations from the services/packages data. If dates are unknown, use relative phases.",
+      comparison: "Briefly introduce the package comparison table that follows and how to read it.",
+      recommended: "Recommend the marked package and explain in 2-3 sentences why it fits this client's needs.",
+      pricing: "Present the investment using the EXACT computed figures supplied in pricing (subtotal, discount, tax, total) with the currency symbol. Never alter numbers.",
+      payment_schedule: "Propose a sensible payment structure (e.g. deposit percentage, milestone payments, balance) referencing the exact total. Percentages are suggestions; amounts must derive from the stated total only.",
+      why_us: "Use ONLY the supplied evidence (portfolio, testimonials, certifications, results). If evidence is thin, write a modest factual statement and note that more portfolio items would strengthen this section.",
+      portfolio: "Reference the supplied portfolio items by title and result metric. Do not invent any.",
+      team: "Describe team composition generically based on the services involved; use supplied team bios only if provided.",
+      assumptions: "List working assumptions, especially where discovery questions were unanswered.",
+      exclusions: "What is NOT included, drawn from the services' exclusions and package terms.",
+      risks: "Honest project risks and practical mitigations relevant to this scope.",
+      terms: "Standard commercial terms summary (validity, revisions, payment, ownership) — generic and professional.",
+      validity: "State how long the proposal remains valid (use the proposal's valid-until date if supplied, otherwise suggest 30 days).",
+      acceptance: "Clear instructions for how the client can accept (secure link, selecting a package, signing).",
+      contact: "Contact details and next steps using the business profile's contact information.",
+    };
+
     try {
       const res = await askJson(
         SYSTEM,
-        `Draft the content for each requested proposal section. For each section write 2-5 short paragraphs (or lists) of persuasive, factual content grounded ONLY in the supplied context. For the 'why_us' section use ONLY supplied evidence; if evidence is thin, write a modest factual statement and note the user should add portfolio items. For 'pricing' state the computed totals exactly as given. For 'comparison' describe the table briefly. Respond filling every section kind provided.\n\n${context}`,
-        contentSchema
+        `Draft the complete content for EVERY requested proposal section of this document. This will become the full multi-page proposal.
+
+For each section:
+- Write 2-5 substantial paragraphs, or a bullet list where the guide says so. Never one-liners (except 'meta' and 'cover').
+- Follow the per-section writing guide exactly.
+- Ground EVERYTHING in the supplied context. Use the business profile's tone (${String(profile?.toneOfVoice ?? "professional")}).
+- Use ONLY supplied facts: never invent clients, testimonials, awards, certifications, results or prices.
+- For 'pricing' and 'payment_schedule', reproduce the exact computed totals supplied — the numbers are calculated by the application and must not change.
+- Where information is missing, write professionally around it and surface it as an assumption.
+
+Per-section guide:
+${Object.entries(sectionGuide).map(([k, v]) => `- ${k}: ${v}`).join("\n")}
+
+Respond filling every section kind provided.
+
+${context}`,
+        contentSchema,
+        { maxOutputTokens: 16000 }
       );
       for (const s of content.sections) {
         const match = res.sections.find((r) => r.kind === s.kind);
-        if (match) s.body = match.body;
+        if (match && match.body.trim()) s.body = match.body;
       }
       content.assumptions = res.assumptions;
+      if (content.comparison.enabled && !content.comparison.note) {
+        content.comparison.note = "Values come directly from the configured packages.";
+      }
     } catch {
       // leave bodies empty; user can write manually
     }

@@ -42,10 +42,10 @@ export async function askText(system: string, prompt: string): Promise<string> {
   return text;
 }
 
-export async function askJson<T>(system: string, prompt: string, schema: z.ZodType<T>): Promise<T> {
+export async function askJson<T>(system: string, prompt: string, schema: z.ZodType<T>, opts: { maxOutputTokens?: number } = {}): Promise<T> {
   const cfg = getConfig();
   if (!cfg) throw new Error("NO_AI_PROVIDER: set GEMINI_API_KEY, GROQ_API_KEY or CEREBRAS_API_KEY in .env");
-  const { object } = await generateObject({ model: cfg.languageModel, schema, system, prompt });
+  const { object } = await generateObject({ model: cfg.languageModel, schema, system, prompt, maxOutputTokens: opts.maxOutputTokens });
   return object;
 }
 

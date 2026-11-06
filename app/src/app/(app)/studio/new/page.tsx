@@ -3,11 +3,12 @@ import { db } from "@/db";
 import { clients } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { createOpportunityAction } from "@/app/actions/studio";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
-const input = "w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-const label = "block text-slate-300 text-xs font-medium mb-1";
+const input = "field";
+const label = "block text-slate-400 text-xs font-medium mb-1.5";
 
 export default async function NewOpportunityPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
   const t = await requireTenant();
@@ -17,10 +18,22 @@ export default async function NewOpportunityPage({ searchParams }: { searchParam
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">New opportunity</h1>
-        <p className="text-slate-400 text-sm mt-0.5">Tell the AI about the prospective client and what you want to propose. The more honest detail, the better the discovery.</p>
+        <div className="text-[10px] font-semibold tracking-[0.14em] text-blue-300/80 uppercase mb-1">AI Proposal Studio · Step 1 of 5</div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">New opportunity</h1>
+        <p className="text-slate-400 text-sm mt-1">Tell the AI about the prospective client and what you want to propose. The more honest detail, the better the discovery.</p>
       </div>
-      <form action={createOpportunityAction} className="rounded-xl bg-slate-900 border border-slate-800 p-6 space-y-4">
+
+      {/* Mini flow hint */}
+      <div className="glass rounded-2xl px-5 py-4 flex items-center gap-3 text-xs">
+        {["Intake", "Analysis", "Questions", "Recommendations", "Proposal"].map((s, i) => (
+          <div key={s} className="flex items-center gap-3 flex-1 last:flex-none">
+            <span className={`whitespace-nowrap ${i === 0 ? "text-white font-medium" : "text-slate-600"}`}>{s}</span>
+            {i < 4 && <div className="flex-1 h-px bg-white/10" />}
+          </div>
+        ))}
+      </div>
+
+      <form action={createOpportunityAction} className="glass rounded-2xl p-6 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2"><label className={label}>Opportunity title *</label><input name="title" required className={input} placeholder="Website redesign for XYZ Fashion" /></div>
           <div>
@@ -41,9 +54,12 @@ export default async function NewOpportunityPage({ searchParams }: { searchParam
           <div><label className={label}>Known business goals</label><textarea name="goals" rows={2} className={input} /></div>
           <div><label className={label}>Known challenges</label><textarea name="challenges" rows={2} className={input} /></div>
           <div className="md:col-span-2"><label className={label}>Conversation notes / uploaded brief</label><textarea name="brief" rows={3} className={input} /></div>
-          <div className="md:col-span-2"><label className={label}>What service do you want to propose, and why approach this client now?</label><textarea name="desiredOutcome" rows={3} className={input} required /></div>
+          <div className="md:col-span-2"><label className={label}>What service do you want to propose, and why approach this client now? *</label><textarea name="desiredOutcome" rows={3} className={input} required /></div>
         </div>
-        <button className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5">Create opportunity & analyse</button>
+        <div className="flex items-center gap-3 pt-1">
+          <SubmitButton label="Create opportunity & analyse" pending="Creating…" className="btn-primary rounded-xl text-white text-sm font-medium px-5 py-2.5" />
+          <span className="text-slate-500 text-xs">Next: the AI analyses the opportunity and generates discovery questions.</span>
+        </div>
       </form>
     </div>
   );

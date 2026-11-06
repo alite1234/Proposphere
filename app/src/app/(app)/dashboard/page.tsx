@@ -57,6 +57,25 @@ export default async function DashboardPage() {
   const accepted = Number(acceptedRows[0]?.n ?? 0);
   const acceptanceRate = sent > 0 ? Math.round((accepted / sent) * 100) : null;
 
+  // Proposal pipeline funnel
+  const pipeline = await db
+    .select({ status: proposals.status, n: sql<number>`count(*)` })
+    .from(proposals)
+    .where(eq(proposals.businessId, bid))
+    .groupBy(proposals.status);
+  const funnelStages: { label: string; keys: string[]; tone: string }[] = [
+    { label: "Drafting", keys: ["draft", "discovery_in_progress", "ready_for_review"], tone: "from-slate-500 to-slate-400" },
+    { label: "Sent", keys: ["sent", "viewed"], tone: "from-blue-500 to-cyan-400" },
+    { label: "In revision", keys: ["changes_requested"], tone: "from-amber-500 to-orange-400" },
+    { label: "Accepted", keys: ["accepted"], tone: "from-emerald-500 to-teal-400" },
+    { label: "Declined/expired", keys: ["declined", "expired", "withdrawn"], tone: "from-red-500 to-rose-400" },
+  ];
+  const funnel = funnelStages.map((s) => ({
+    ...s,
+    n: pipeline.filter((p) => s.keys.includes(p.status)).reduce((a, p) => a + Number(p.n), 0),
+  }));
+  const funnelMax = Math.max(...funnel.map((f) => f.n), 1);
+
   // Revenue by month, last 6 months (received cash only)
   const payRows = await db
     .select({ amount: payments.amount, paymentDate: payments.paymentDate })
@@ -166,30 +185,54 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Upcoming deadlines */}
+        {/* Proposal pipeline funnel */}
         <div className="glass rounded-2xl p-5 lg:col-span-2">
-          <h2 className="text-white font-semibold text-sm mb-4">Upcoming deadlines</h2>
-          {upcomingTasks.length === 0 ? (
-            <p className="text-slate-500 text-sm">No scheduled tasks yet.</p>
-          ) : (
-            <ul className="space-y-3">
-              {upcomingTasks.map((task) => {
-                const overdue = task.dueDate && new Date(task.dueDate) < new Date();
-                return (
-                  <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
-                    <div className="min-w-0">
-                      <div className="text-slate-200 truncate">{task.title}</div>
-                      <div className="text-slate-500 text-xs">{task.projectName}</div>
-                    </div>
-                    <span className={`text-xs shrink-0 rounded-md px-2 py-1 ${overdue ? "text-red-300 bg-red-500/10 border border-red-500/20" : "text-slate-400 bg-white/[0.03] border border-white/[0.06]"}`}>
-                      {task.dueDate}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="text-white font-semibold text-sm">Proposal pipeline</h2>
+            <Link href="/analytics" className="text-slate-500 hover:text-slate-300 text-xs transition-colors">Analytics →</Link>
+          </div>
+          <div className="space-y-3">
+            {funnel.map((f) => (
+              <div key={f.label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-400">{f.label}</span>
+                  <span className="text-slate-300 font-medium">{f.n}</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/[0.05] overflow-hidden">
+                  <div
+                    className={`h-full rounded-full bg-gradient-to-r ${f.tone} transition-all`}
+                    style={{ width: `${Math.max((f.n / funnelMax) * 100, f.n > 0 ? 8 : 0)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Upcoming deadlines */}
+      <div className="glass rounded-2xl p-5">
+        <h2 className="text-white font-semibold text-sm mb-4">Upcoming deadlines</h2>
+        {upcomingTasks.length === 0 ? (
+          <p className="text-slate-500 text-sm">No scheduled tasks yet.</p>
+        ) : (
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
+            {upcomingTasks.map((task) => {
+              const overdue = task.dueDate && new Date(task.dueDate) < new Date();
+              return (
+                <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <div className="text-slate-200 truncate">{task.title}</div>
+                    <div className="text-slate-500 text-xs">{task.projectName}</div>
+                  </div>
+                  <span className={`text-xs shrink-0 rounded-md px-2 py-1 ${overdue ? "text-red-300 bg-red-500/10 border border-red-500/20" : "text-slate-400 bg-white/[0.03] border border-white/[0.06]"}`}>
+                    {task.dueDate}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Recent activity */}
