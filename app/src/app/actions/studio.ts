@@ -5,6 +5,7 @@ import { opportunities, discoverySessions, proposals, proposalVersions, proposal
 import { requireTenant, logActivity, notify, nextRef } from "@/lib/server";
 import { askJson, aiAvailable } from "@/lib/ai";
 import { emptyContent, defaultSections } from "@/lib/proposal-defaults";
+import { buildFallbackSections, type FallbackContext } from "@/lib/proposal-fallback";
 import { computeTotals, num } from "@/lib/money";
 import type { Recommendation, ProposalSectionData, ProposalContent } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -286,6 +287,43 @@ export async function generateProposalAction(formData: FormData) {
   }
 
   // AI drafts section bodies; user edits everything before sending.
+  const fallbackCtx: FallbackContext = {
+    businessName: t.businessName,
+    clientName: opp?.clientName ?? null,
+    contactName: opp?.contactName ?? null,
+    opportunityTitle: opp?.title ?? "the project",
+    goals: opp?.goals ?? null,
+    challenges: opp?.challenges ?? null,
+    desiredOutcome: opp?.desiredOutcome ?? null,
+    whatWeDo: profile?.whatWeDo ?? null,
+    description: profile?.description ?? null,
+    services: includedServices.map((s) => ({ name: s.name, description: s.description, scope: s.scope, deliverables: s.deliverables, durationDays: s.durationDays, exclusions: s.exclusions })),
+    packages: pkgs.map((p) => ({ name: p.name, price: p.price, features: p.features, timelineDays: p.timelineDays, supportDays: p.supportDays, recommended: p.recommended })),
+    evidence: pf.map((p) => ({ kind: p.kind, title: p.title, result: p.resultMetric })),
+    pricing: { subtotal: totals.subtotal, discount: totals.discountAmount, tax: totals.tax, total: totals.total, currency },
+    hasComparison: content.comparison.enabled && content.comparison.rows.length > 0,
+    recommendedPackage: pkgs.find((p) => p.recommended)?.name ?? null,
+    answers: session.answers,
+  };
+
+  const applyFallback = () => {
+    const fallback = buildFallbackSections(fallbackCtx);
+    for (const s of content.sections) {
+      const body = fallback.get(s.kind);
+      if (body && !s.body.trim()) s.body = body;
+    }
+    if (!content.assumptions.length) {
+      content.assumptions = [
+        "Timely feedback and approvals from the client at review points.",
+        "Access to required systems, content and credentials by the agreed dates.",
+        "Scope remains as described; changes are handled through a written change request.",
+      ];
+    }
+    if (content.comparison.enabled && !content.comparison.note) {
+      content.comparison.note = "Values come directly from the configured packages.";
+    }
+  };
+
   if (aiAvailable()) {
     const context = JSON.stringify({
       business: profile,
@@ -366,9 +404,15 @@ ${context}`,
       if (content.comparison.enabled && !content.comparison.note) {
         content.comparison.note = "Values come directly from the configured packages.";
       }
+      // Fill any section the AI left empty with deterministic draft content
+      applyFallback();
     } catch {
-      // leave bodies empty; user can write manually
+      // AI failed — fall back to deterministic draft content from real data
+      applyFallback();
     }
+  } else {
+    // No AI provider configured — deterministic draft content from real data
+    applyFallback();
   }
 
   const reference = await nextRef(t.businessId, "proposal");

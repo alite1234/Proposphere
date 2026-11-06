@@ -16,7 +16,7 @@ function getConfig(): Config {
   const cerebrasKey = process.env.CEREBRAS_API_KEY;
   if (geminiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return { name: "gemini", model: process.env.GEMINI_MODEL || "gemini-2.0-flash", languageModel: google(process.env.GEMINI_MODEL || "gemini-2.0-flash") };
+    return { name: "gemini", model: process.env.GEMINI_MODEL || "gemini-2.5-flash", languageModel: google(process.env.GEMINI_MODEL || "gemini-2.5-flash") };
   }
   if (groqKey) {
     const groq = createOpenAICompatible({ name: "groq", baseURL: "https://api.groq.com/openai/v1", apiKey: groqKey });
