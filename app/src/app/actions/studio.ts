@@ -346,6 +346,8 @@ For each section:
 - Use ONLY supplied facts: never invent clients, testimonials, awards, certifications, results or prices.
 - For 'pricing' and 'payment_schedule', reproduce the exact computed totals supplied — the numbers are calculated by the application and must not change.
 - Where information is missing, write professionally around it and surface it as an assumption.
+- Write complete, send-ready prose — no placeholders, no bracketed blanks, no meta commentary, no padding to hit a length.
+- Draft ONLY the sections listed in 'sections' — never invent extra sections; document length comes from the user's chosen structure, not from you.
 
 Per-section guide:
 ${Object.entries(sectionGuide).map(([k, v]) => `- ${k}: ${v}`).join("\n")}

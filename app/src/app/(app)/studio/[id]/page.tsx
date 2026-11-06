@@ -145,9 +145,9 @@ export default async function StudioSessionPage({ params }: { params: Promise<{ 
             <div>
               <label className="block text-slate-400 text-xs mb-1.5">Document complexity</label>
               <select name="complexity" className={input}>
-                <option value="simple">Simple — lean one-pager style</option>
-                <option value="standard" selected>Standard</option>
-                <option value="full">Full — all 30 sections</option>
+                <option value="simple">Lean — 7 essential sections</option>
+                <option value="standard" selected>Standard — 15 sections (recommended)</option>
+                <option value="full">Comprehensive — all 30 sections</option>
               </select>
             </div>
             <SubmitButton label="Generate proposal draft" pending="Writing your proposal…" className="btn-primary rounded-xl text-white text-sm font-medium px-5 py-2.5" />

@@ -72,9 +72,9 @@ export default async function ProposalsPage() {
           <div>
             <label className="block text-slate-300 text-xs mb-1">Complexity</label>
             <select name="complexity" className="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-white text-sm">
-              <option value="simple">Simple</option>
-              <option value="standard" selected>Standard</option>
-              <option value="full">Full</option>
+              <option value="simple">Lean — 7 sections</option>
+              <option value="standard" selected>Standard — 15 sections</option>
+              <option value="full">Comprehensive — 30 sections</option>
             </select>
           </div>
           <button className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5">Create</button>
