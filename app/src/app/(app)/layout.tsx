@@ -5,6 +5,7 @@ import { and, eq, count } from "drizzle-orm";
 import { logoutAction } from "@/app/actions/auth";
 import { aiAvailable } from "@/lib/ai";
 import Sidebar from "@/components/Sidebar";
+import PageTransition from "@/components/Motion";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="ambient min-h-screen">
       <Sidebar nav={nav} businessName={tenant.businessName} userName={tenant.user.name} unreadCount={unreadCount} aiReady={aiAvailable()} logoutAction={logoutAction} />
       <main className="lg:pl-64">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <PageTransition>{children}</PageTransition>
+        </div>
       </main>
     </div>
   );

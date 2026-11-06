@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
+import { Reveal } from "@/components/Motion";
 
 export const dynamic = "force-dynamic";
 
@@ -48,20 +49,20 @@ export default async function LandingPage() {
   return (
     <div className="ambient min-h-screen">
       {/* Nav */}
-      <header className="sticky top-0 z-40 border-b hairline bg-[#05070d]/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b hairline bg-white/70 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/25">P</div>
-            <span className="text-white font-semibold tracking-tight">Proposphere</span>
+            <span className="font-semibold tracking-tight text-slate-900">Proposphere</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <a href="#features" className="hidden sm:block text-slate-400 hover:text-white text-sm px-3 py-2 transition-colors">Features</a>
-            <a href="#how" className="hidden sm:block text-slate-400 hover:text-white text-sm px-3 py-2 transition-colors">How it works</a>
+            <a href="#features" className="hidden sm:block text-slate-500 hover:text-slate-900 text-sm px-3 py-2 transition-colors">Features</a>
+            <a href="#how" className="hidden sm:block text-slate-500 hover:text-slate-900 text-sm px-3 py-2 transition-colors">How it works</a>
             {user ? (
               <Link href="/dashboard" className="btn-primary rounded-lg text-sm font-medium px-4 py-2">Open dashboard</Link>
             ) : (
               <>
-                <Link href="/login" className="text-slate-300 hover:text-white text-sm px-3 py-2 transition-colors">Sign in</Link>
+                <Link href="/login" className="text-slate-600 hover:text-slate-900 text-sm px-3 py-2 transition-colors">Sign in</Link>
                 <Link href="/register" className="btn-primary rounded-lg text-sm font-medium px-4 py-2">Get started</Link>
               </>
             )}
@@ -71,16 +72,16 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-5 pt-20 pb-24 text-center">
-        <div className="rise inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs text-slate-300 mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="rise inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs text-slate-600 mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           From first conversation to final payment
         </div>
-        <h1 className="rise rise-1 text-4xl sm:text-6xl font-bold tracking-tight text-white leading-[1.08] max-w-4xl mx-auto">
+        <h1 className="rise rise-1 text-4xl sm:text-6xl font-bold tracking-tight text-slate-900 leading-[1.08] max-w-4xl mx-auto">
           Understand the opportunity.<br />
           Build a <span className="gradient-text">stronger proposal</span>.<br />
           Win the client.
         </h1>
-        <p className="rise rise-2 text-slate-400 text-lg max-w-2xl mx-auto mt-6 leading-relaxed">
+        <p className="rise rise-2 text-slate-500 text-lg max-w-2xl mx-auto mt-6 leading-relaxed">
           Proposphere behaves like a thoughtful business development consultant — profiling your business, questioning the opportunity, drafting the proposal, then tracking the work and the money it brings in.
         </p>
         <div className="rise rise-3 flex flex-wrap items-center justify-center gap-3 mt-9">
@@ -107,34 +108,38 @@ export default async function LandingPage() {
 
       {/* Features */}
       <section id="features" className="max-w-6xl mx-auto px-5 py-20">
-        <h2 className="text-3xl font-bold text-white text-center tracking-tight">Everything after &ldquo;yes&rdquo; depends on what happens before it</h2>
-        <p className="text-slate-400 text-center mt-3 max-w-2xl mx-auto">One platform for the whole commercial cycle — not just a document generator.</p>
+        <h2 className="text-3xl font-bold text-slate-900 text-center tracking-tight">Everything after &ldquo;yes&rdquo; depends on what happens before it</h2>
+        <p className="text-slate-500 text-center mt-3 max-w-2xl mx-auto">One platform for the whole commercial cycle — not just a document generator.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="glass glass-hover rounded-2xl p-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center mb-4">
-                <svg className="w-5 h-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
-                </svg>
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 3) * 80}>
+              <div className="glass glass-hover rounded-2xl p-6 h-full">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-violet-500/15 border border-slate-200/70 flex items-center justify-center mb-4">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
+                  </svg>
+                </div>
+                <h3 className="text-slate-900 font-semibold">{f.title}</h3>
+                <p className="text-slate-500 text-sm mt-2 leading-relaxed">{f.body}</p>
               </div>
-              <h3 className="text-white font-semibold">{f.title}</h3>
-              <p className="text-slate-400 text-sm mt-2 leading-relaxed">{f.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* How it works */}
       <section id="how" className="max-w-6xl mx-auto px-5 py-20">
-        <h2 className="text-3xl font-bold text-white text-center tracking-tight">How it works</h2>
+        <h2 className="text-3xl font-bold text-slate-900 text-center tracking-tight">How it works</h2>
         <div className="grid md:grid-cols-3 gap-4 mt-12">
-          {STEPS.map((s) => (
-            <div key={s.n} className="glass rounded-2xl p-6 relative overflow-hidden">
-              <span className="absolute -top-3 -right-1 text-7xl font-bold text-white/[0.04] select-none">{s.n}</span>
-              <div className="text-blue-300 text-xs font-semibold tracking-widest">{s.n}</div>
-              <h3 className="text-white font-semibold mt-2">{s.title}</h3>
-              <p className="text-slate-400 text-sm mt-2 leading-relaxed">{s.body}</p>
-            </div>
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 100}>
+              <div className="glass rounded-2xl p-6 relative overflow-hidden h-full">
+                <span className="absolute -top-3 -right-1 text-7xl font-bold text-slate-900/[0.04] select-none">{s.n}</span>
+                <div className="text-blue-600 text-xs font-semibold tracking-widest">{s.n}</div>
+                <h3 className="text-slate-900 font-semibold mt-2">{s.title}</h3>
+                <p className="text-slate-500 text-sm mt-2 leading-relaxed">{s.body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -149,8 +154,8 @@ export default async function LandingPage() {
             ["Privacy by design", "Every record is isolated to your workspace."],
           ].map(([t, b]) => (
             <div key={t}>
-              <div className="flex items-center gap-2 text-white text-sm font-semibold">
-                <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              <div className="flex items-center gap-2 text-slate-900 text-sm font-semibold">
+                <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 {t}
               </div>
               <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">{b}</p>
@@ -162,9 +167,9 @@ export default async function LandingPage() {
       {/* Final CTA */}
       <section className="max-w-6xl mx-auto px-5 py-20 text-center">
         <div className="glass rounded-3xl px-8 py-14 relative overflow-hidden">
-          <div className="absolute inset-x-0 -top-24 h-48 bg-gradient-to-r from-blue-500/20 via-violet-500/20 to-cyan-500/20 blur-3xl" />
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight relative">Track the work. Manage the money.</h2>
-          <p className="text-slate-400 mt-4 max-w-xl mx-auto relative">Set up your business profile in minutes and send your first AI-assisted proposal today.</p>
+          <div className="absolute inset-x-0 -top-24 h-48 bg-gradient-to-r from-blue-500/15 via-violet-500/15 to-cyan-500/15 blur-3xl" />
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight relative">Track the work. Manage the money.</h2>
+          <p className="text-slate-500 mt-4 max-w-xl mx-auto relative">Set up your business profile in minutes and send your first AI-assisted proposal today.</p>
           <Link href={user ? "/dashboard" : "/register"} className="btn-primary relative inline-block rounded-xl px-8 py-3.5 text-sm font-semibold mt-8">
             {user ? "Open your dashboard" : "Get started free"}
           </Link>
